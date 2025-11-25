@@ -14,6 +14,7 @@
   "dependencies": {
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.1",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -22,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.0",
     "nodemon": "^3.1.11",
+    "svix": "^1.81.0",
     "zod": "^4.1.13"
   }
 }
