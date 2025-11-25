@@ -4,12 +4,16 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import connectDB from "./lib/db.js";
+import webhookRoutes from "./routes/webhook.route.js";
 
 dotenv.config();
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
+// Webhook routes must be defined BEFORE express.json() to allow raw body parsing
+app.use("/api/webhooks", webhookRoutes);
 
 app.use(express.json());
 app.use(cookieParser());
