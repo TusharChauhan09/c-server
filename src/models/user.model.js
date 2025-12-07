@@ -30,6 +30,22 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: String,
     },
+    subscriptionTier: {
+      type: String,
+      enum: ["bronze", "silver", "gold"],
+      default: "bronze",
+    },
+    // Credits for using the Standard GPT-4o model
+    // 1 Credit = 1 Session (approx 2 mins)
+    standardCredits: {
+      type: Number,
+      default: 0,
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
   },
   { timestamps: true }
 );
