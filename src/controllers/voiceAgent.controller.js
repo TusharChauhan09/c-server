@@ -1,3 +1,4 @@
+import { User } from '../models/user.model.js';
 import axios from 'axios';
 
 /**
@@ -6,16 +7,47 @@ import axios from 'axios';
  */
 export const getEphemeralToken = async (req, res) => {
   try {
+    const { model = 'gpt-4o-mini-realtime-preview', userId } = req.query;
+
     console.log('📞 Creating ephemeral token for voice session...');
-    console.log('🔑 API Key exists:', !!process.env.OPENAI_API_KEY);
-    console.log('🔑 API Key length:', process.env.OPENAI_API_KEY?.length);
-    console.log('🔑 First 20 chars:', process.env.OPENAI_API_KEY?.substring(0, 20));
+    console.log('🤖 Using model:', model);
+    console.log('👤 User ID:', userId);
+    console.log('🔑 API Key Loaded:', !!process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY ? `(Length: ${process.env.OPENAI_API_KEY.length})` : '(Missing)');
+
+    // Check credits for Standard Model
+    if (model !== 'gpt-4o-mini-realtime-preview') {
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'User ID required for premium models' });
+      }
+
+      const user = await User.findOne({ clerkId: userId });
+      
+      if (!user) {
+         return res.status(404).json({ success: false, message: 'User not found in database' });
+      }
+
+      console.log(`💳 User Credits: ${user.standardCredits}, Tier: ${user.subscriptionTier}`);
+
+      // Check if user has sufficient credits
+      if (user.standardCredits <= 0) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Insufficient credits for GPT-4o Standard. Please upgrade or use Mini.',
+          forbidden: true // Flag for frontend to show upgrade modal
+        });
+      }
+
+      // Deduct 1 credit (Approx 1 session)
+      user.standardCredits -= 1;
+      await user.save();
+      console.log(`✅ Deducted 1 credit. Remaining: ${user.standardCredits}`);
+    }
 
     // Create ephemeral token via OpenAI API
     const response = await axios.post(
       'https://api.openai.com/v1/realtime/sessions',
       {
-        model: 'gpt-4o-realtime-preview',  // Use base model name
+        model: model,
         modalities: ['text', 'audio'],
         voice: 'alloy' // Options: alloy, echo, fable, onyx, nova, shimmer
       },

@@ -45,9 +45,13 @@ export const createOrder = async (req, res) => {
   }
 };
 
+import { User } from "../models/user.model.js";
+
+// ... existing code ...
+
 export const verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, amount } = req.body;
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -59,8 +63,39 @@ export const verifyPayment = async (req, res) => {
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (isAuthentic) {
-      // Database update logic here (e.g., mark user as premium)
-      
+      if (userId) {
+         try {
+             // Find user and update plan
+             const user = await User.findOne({ clerkId: userId });
+             
+             if (user) {
+                 // Determine plan based on amount (simple logic for now)
+                 // Frontend sends amount in INR (e.g. 499 or 999)
+                 let creditsToAdd = 0;
+                 let newTier = user.subscriptionTier;
+
+                 if (amount == 499) {
+                     newTier = 'silver';
+                     creditsToAdd = 10;
+                 } else if (amount == 999) {
+                     newTier = 'gold';
+                     creditsToAdd = 20;
+                 }
+
+                 // Update user
+                 user.subscriptionTier = newTier;
+                 user.standardCredits += creditsToAdd; // Add to existing credits
+                 user.subscriptionStatus = 'active';
+                 
+                 await user.save();
+                 console.log(`✅ User ${userId} upgraded to ${newTier} with +${creditsToAdd} credits`);
+             }
+         } catch (dbError) {
+             console.error("Database update failed after payment:", dbError);
+             // Note: In production we should handle this more robustly (e.g. queue)
+         }
+      }
+
       res.status(200).json({
         success: true,
         message: "Payment verified successfully",
