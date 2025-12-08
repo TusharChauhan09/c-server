@@ -10,6 +10,7 @@ import webhookRoutes from "./routes/webhook.route.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import voiceAgentRoutes from "./routes/voiceAgent.route.js";
 import authRoutes from "./routes/auth.route.js";
+import feedbackRoutes from "./routes/feedback.routes.js";
 
 // Explicitly load .env from the server root
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -47,6 +48,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/voice-agent", voiceAgentRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 // Initialize WebSocket Server for Gemini
 
