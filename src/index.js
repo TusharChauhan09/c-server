@@ -11,6 +11,9 @@ import paymentRoutes from "./routes/payment.routes.js";
 import voiceAgentRoutes from "./routes/voiceAgent.route.js";
 import authRoutes from "./routes/auth.route.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
+import servicesRoutes from "./routes/services.routes.js";
+import bookingRoutes from "./routes/booking.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 // Explicitly load .env from the server root
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -49,6 +52,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/voice-agent", voiceAgentRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/services", servicesRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Initialize WebSocket Server for Gemini
 
