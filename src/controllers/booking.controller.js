@@ -1,17 +1,34 @@
-import { Booking } from '../models/booking.model.js';
-import { Hotel, Flight, Train, Bus, Taxi, Restaurant, Guide } from '../models/services.model.js';
+import mongoose from "mongoose";
+import { Booking } from "../models/booking.model.js";
+import {
+  Hotel,
+  Flight,
+  Train,
+  Bus,
+  Taxi,
+  Restaurant,
+  Guide,
+} from "../models/services.model.js";
 
 // Get service model by type
 const getServiceModel = (type) => {
   switch (type) {
-    case 'hotel': return Hotel;
-    case 'flight': return Flight;
-    case 'train': return Train;
-    case 'bus': return Bus;
-    case 'taxi': return Taxi;
-    case 'restaurant': return Restaurant;
-    case 'guide': return Guide;
-    default: return null;
+    case "hotel":
+      return Hotel;
+    case "flight":
+      return Flight;
+    case "train":
+      return Train;
+    case "bus":
+      return Bus;
+    case "taxi":
+      return Taxi;
+    case "restaurant":
+      return Restaurant;
+    case "guide":
+      return Guide;
+    default:
+      return null;
   }
 };
 
@@ -24,42 +41,61 @@ export const createBooking = async (req, res) => {
       userName,
       serviceType,
       serviceId,
+      serviceName: providedServiceName,
+      serviceImage: providedServiceImage,
       bookingDetails,
       basePrice,
       totalPrice,
       paymentId,
       orderId,
-      paymentMethod = 'razorpay'
+      paymentMethod = "razorpay",
     } = req.body;
 
     // Validate required fields
     if (!userId || !serviceType || !serviceId || !totalPrice) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required fields' 
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
       });
     }
 
     // Get service details
     const ServiceModel = getServiceModel(serviceType);
     if (!ServiceModel) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid service type' 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service type",
       });
     }
 
-    const service = await ServiceModel.findById(serviceId);
-    if (!service) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Service not found' 
-      });
+    let serviceName = providedServiceName;
+    let serviceImage = providedServiceImage;
+
+    // Try to find service in DB if ID is valid ObjectId
+    let service = null;
+    if (mongoose.isValidObjectId(serviceId)) {
+      try {
+        service = await ServiceModel.findById(serviceId);
+      } catch (e) {
+        console.log("Service lookup failed for ID:", serviceId);
+      }
     }
 
-    // Get service name and image
-    const serviceName = service.name || service.airline || service.operator || service.type || service.model || 'Service';
-    const serviceImage = service.image;
+    if (service) {
+      serviceName =
+        service.name ||
+        service.airline ||
+        service.operator ||
+        service.type ||
+        service.model ||
+        "Service";
+      serviceImage = service.image;
+    } else if (!serviceName) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found and no service details provided",
+      });
+    }
 
     // Create booking
     const booking = new Booking({
@@ -68,7 +104,7 @@ export const createBooking = async (req, res) => {
       userName,
       serviceType,
       serviceId,
-      serviceName,
+      serviceName: serviceName || "Unknown Service",
       serviceImage,
       bookingDetails,
       basePrice: basePrice || totalPrice,
@@ -76,30 +112,30 @@ export const createBooking = async (req, res) => {
       paymentId,
       orderId,
       paymentMethod,
-      paymentStatus: paymentId ? 'completed' : 'pending',
-      status: paymentId ? 'confirmed' : 'pending',
-      confirmationDate: paymentId ? new Date() : null
+      paymentStatus: paymentId ? "completed" : "pending",
+      status: paymentId ? "confirmed" : "pending",
+      confirmationDate: paymentId ? new Date() : null,
     });
 
     await booking.save();
 
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully',
+      message: "Booking created successfully",
       data: {
         bookingId: booking._id,
         confirmationCode: booking.confirmationCode,
         status: booking.status,
         serviceName: booking.serviceName,
-        totalPrice: booking.totalPrice
-      }
+        totalPrice: booking.totalPrice,
+      },
     });
   } catch (error) {
-    console.error('Error creating booking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create booking',
-      error: error.message 
+    console.error("Error creating booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create booking",
+      error: error.message,
     });
   }
 };
@@ -122,13 +158,13 @@ export const getUserBookings = async (req, res) => {
     res.status(200).json({
       success: true,
       count: bookings.length,
-      data: bookings
+      data: bookings,
     });
   } catch (error) {
-    console.error('Error fetching bookings:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch bookings' 
+    console.error("Error fetching bookings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings",
     });
   }
 };
@@ -139,23 +175,23 @@ export const getBookingById = async (req, res) => {
     const { bookingId } = req.params;
 
     const booking = await Booking.findById(bookingId);
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: booking
+      data: booking,
     });
   } catch (error) {
-    console.error('Error fetching booking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch booking' 
+    console.error("Error fetching booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch booking",
     });
   }
 };
@@ -166,23 +202,23 @@ export const getBookingByCode = async (req, res) => {
     const { code } = req.params;
 
     const booking = await Booking.findOne({ confirmationCode: code });
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: booking
+      data: booking,
     });
   } catch (error) {
-    console.error('Error fetching booking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch booking' 
+    console.error("Error fetching booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch booking",
     });
   }
 };
@@ -194,22 +230,22 @@ export const updateBookingStatus = async (req, res) => {
     const { status, cancellationReason } = req.body;
 
     const booking = await Booking.findById(bookingId);
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
       });
     }
 
     booking.status = status;
-    
-    if (status === 'cancelled') {
+
+    if (status === "cancelled") {
       booking.cancellationDate = new Date();
       booking.cancellationReason = cancellationReason;
     }
-    
-    if (status === 'confirmed') {
+
+    if (status === "confirmed") {
       booking.confirmationDate = new Date();
     }
 
@@ -217,14 +253,14 @@ export const updateBookingStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Booking status updated',
-      data: booking
+      message: "Booking status updated",
+      data: booking,
     });
   } catch (error) {
-    console.error('Error updating booking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update booking' 
+    console.error("Error updating booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update booking",
     });
   }
 };
@@ -236,21 +272,21 @@ export const updatePaymentStatus = async (req, res) => {
     const { paymentStatus, paymentId, orderId } = req.body;
 
     const booking = await Booking.findById(bookingId);
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
       });
     }
 
     booking.paymentStatus = paymentStatus;
     if (paymentId) booking.paymentId = paymentId;
     if (orderId) booking.orderId = orderId;
-    
+
     // Auto-confirm on successful payment
-    if (paymentStatus === 'completed') {
-      booking.status = 'confirmed';
+    if (paymentStatus === "completed") {
+      booking.status = "confirmed";
       booking.confirmationDate = new Date();
     }
 
@@ -258,14 +294,14 @@ export const updatePaymentStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Payment status updated',
-      data: booking
+      message: "Payment status updated",
+      data: booking,
     });
   } catch (error) {
-    console.error('Error updating payment:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update payment status' 
+    console.error("Error updating payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update payment status",
     });
   }
 };
@@ -277,38 +313,38 @@ export const cancelBooking = async (req, res) => {
     const { reason } = req.body;
 
     const booking = await Booking.findById(bookingId);
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
       });
     }
 
     // Check if booking can be cancelled
-    if (booking.status === 'completed' || booking.status === 'cancelled') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Booking cannot be cancelled' 
+    if (booking.status === "completed" || booking.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Booking cannot be cancelled",
       });
     }
 
-    booking.status = 'cancelled';
+    booking.status = "cancelled";
     booking.cancellationDate = new Date();
-    booking.cancellationReason = reason || 'Cancelled by user';
+    booking.cancellationReason = reason || "Cancelled by user";
 
     await booking.save();
 
     res.status(200).json({
       success: true,
-      message: 'Booking cancelled successfully',
-      data: booking
+      message: "Booking cancelled successfully",
+      data: booking,
     });
   } catch (error) {
-    console.error('Error cancelling booking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to cancel booking' 
+    console.error("Error cancelling booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to cancel booking",
     });
   }
 };
@@ -319,18 +355,18 @@ export const getBookingStats = async (req, res) => {
     const stats = await Booking.aggregate([
       {
         $group: {
-          _id: '$serviceType',
+          _id: "$serviceType",
           totalBookings: { $sum: 1 },
-          totalRevenue: { $sum: '$totalPrice' },
+          totalRevenue: { $sum: "$totalPrice" },
           confirmedBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$status", "confirmed"] }, 1, 0] },
           },
           cancelledBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-          }
-        }
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+          },
+        },
       },
-      { $sort: { totalBookings: -1 } }
+      { $sort: { totalBookings: -1 } },
     ]);
 
     const overallStats = await Booking.aggregate([
@@ -338,26 +374,30 @@ export const getBookingStats = async (req, res) => {
         $group: {
           _id: null,
           totalBookings: { $sum: 1 },
-          totalRevenue: { $sum: '$totalPrice' },
+          totalRevenue: { $sum: "$totalPrice" },
           confirmedBookings: {
-            $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: [{ $eq: ["$status", "confirmed"] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     res.status(200).json({
       success: true,
       data: {
         byService: stats,
-        overall: overallStats[0] || { totalBookings: 0, totalRevenue: 0, confirmedBookings: 0 }
-      }
+        overall: overallStats[0] || {
+          totalBookings: 0,
+          totalRevenue: 0,
+          confirmedBookings: 0,
+        },
+      },
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch statistics' 
+    console.error("Error fetching stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch statistics",
     });
   }
 };

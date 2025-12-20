@@ -2,8 +2,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import http from 'http';
-import path from 'path';
+import http from "http";
+import path from "path";
 
 import connectDB from "./lib/db.js";
 import webhookRoutes from "./routes/webhook.route.js";
@@ -14,14 +14,21 @@ import feedbackRoutes from "./routes/feedback.routes.js";
 import servicesRoutes from "./routes/services.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import sellerRoutes from "./routes/seller.routes.js";
+import ideaRoutes from "./routes/idea.routes.js";
 
 // Explicitly load .env from the server root
-dotenv.config({ path: path.join(process.cwd(), '.env') });
+dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 console.log("-----------------------------------");
 console.log("📂 CWD:", process.cwd());
-console.log("📄 Env File Path:", path.join(process.cwd(), '.env'));
-console.log("🔑 OPENAI_API_KEY Status:", process.env.OPENAI_API_KEY ? "Loaded (First 5: " + process.env.OPENAI_API_KEY.substring(0,5) + ")" : "MISSING");
+console.log("📄 Env File Path:", path.join(process.cwd(), ".env"));
+console.log(
+  "🔑 OPENAI_API_KEY Status:",
+  process.env.OPENAI_API_KEY
+    ? "Loaded (First 5: " + process.env.OPENAI_API_KEY.substring(0, 5) + ")"
+    : "MISSING"
+);
 console.log("-----------------------------------");
 
 const app = express();
@@ -36,10 +43,12 @@ const allowedOrigins = [
   process.env.FRONTEND_URL, // Production frontend URL (set in .env)
 ].filter(Boolean); // Remove undefined values
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
 // Webhook routes must be defined BEFORE express.json() to allow raw body parsing
 app.use("/api/webhooks", webhookRoutes);
@@ -55,17 +64,19 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/seller", sellerRoutes);
+app.use("/api/ideas", ideaRoutes);
 
 // Initialize WebSocket Server for Gemini
 
 // Initialize WebSocket Server (Optional: if needed for other features)
 // const wss = new WebSocketServer({ server });
 
-server.on('upgrade', (request, socket, head) => {
+server.on("upgrade", (request, socket, head) => {
   // console.log('📡 WebSocket Upgrade Request received:', request.url);
 });
 
 server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    connectDB();
+  console.log(`Server is running on port ${PORT}`);
+  connectDB();
 });
